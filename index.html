@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Consent by Design — Airbnb Prototype</title>
+<style>
+  :root{
+    --coral:#FF385C;
+    --coral-dark:#D6295A;
+    --charcoal:#222222;
+    --gray:#717171;
+    --gray-light:#EBEBEB;
+    --card:#F7F7F7;
+    --teal:#00A699;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:#FAFAFA;
+    color:var(--charcoal);
+    display:flex;
+    min-height:100vh;
+  }
+  /* ---------- Layout: phone + side notes ---------- */
+  .stage{
+    display:flex;
+    width:100%;
+    justify-content:center;
+    align-items:flex-start;
+    gap:48px;
+    padding:40px 24px;
+  }
+  .phone-wrap{
+    position:relative;
+  }
+  .phone{
+    width:375px;
+    height:812px;
+    background:var(--white);
+    border-radius:44px;
+    border:10px solid var(--charcoal);
+    box-shadow:0 30px 60px rgba(0,0,0,0.25);
+    overflow:hidden;
+    position:relative;
+  }
+  .notch{
+    position:absolute;
+    top:0; left:50%; transform:translateX(-50%);
+    width:150px; height:26px;
+    background:var(--charcoal);
+    border-radius:0 0 16px 16px;
+    z-index:50;
+  }
+  .screen{
+    position:absolute; inset:0;
+    display:none;
+    flex-direction:column;
+    background:var(--white);
+    animation:fade .25s ease;
+  }
+  .screen.active{display:flex;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  .status-bar{height:38px;flex-shrink:0;}
+  .topbar{
+    display:flex;align-items:center;gap:12px;
+    padding:6px 16px 12px;
+    flex-shrink:0;
+  }
+  .topbar .back{
+    width:34px;height:34px;border-radius:50%;background:var(--card);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-size:16px;border:none;
+  }
+  .topbar .title{font-size:16px;font-weight:700;}
+  .content{flex:1;overflow-y:auto;padding:0 20px 20px;}
+  .content::-webkit-scrollbar{display:none;}
+
+  h1.big{font-size:24px;font-weight:800;margin:6px 0 8px;line-height:1.25;}
+  p.sub{color:var(--gray);font-size:14px;line-height:1.5;margin:0 0 18px;}
+  .btn{
+    display:block;width:100%;text-align:center;
+    background:var(--coral);color:#fff;border:none;border-radius:12px;
+    padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;
+  }
+  .btn:hover{background:var(--coral-dark);}
+  .btn.secondary{background:var(--white);color:var(--charcoal);border:1.5px solid var(--charcoal);}
+  .btn.ghost{background:transparent;color:var(--coral);font-weight:700;padding:10px;}
+  .card{
+    background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;
+  }
+  .row{display:flex;align-items:flex-start;gap:12px;}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#E8F8F3;color:#0B8A72;font-size:12px;font-weight:700;
+    padding:5px 10px;border-radius:20px;
+  }
+  .badge-coral{background:#FFF0F1;color:var(--coral-dark);}
+  .toggle{
+    position:relative;width:46px;height:26px;border-radius:14px;background:var(--gray-light);
+    flex-shrink:0;cursor:pointer;transition:background .2s;
+  }
+  .toggle.on{background:var(--coral);}
+  .toggle.locked{background:#CFCFCF;cursor:not-allowed;}
+  .toggle .knob{
+    position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+    background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  .toggle.on .knob{left:23px;}
+  .consent-row{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:14px 0;border-bottom:1px solid var(--gray-light);
+  }
+  .consent-row:last-child{border-bottom:none;}
+  .consent-row .label{font-size:14px;font-weight:700;}
+  .consent-row .desc{font-size:12.5px;color:var(--gray);margin-top:3px;line-height:1.4;}
+  .icon-circle{
+    width:38px;height:38px;border-radius:50%;background:var(--card);
+    display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;
+  }
+  .bottom-fixed{
+    padding:14px 20px 22px;border-top:1px solid var(--gray-light);flex-shrink:0;background:#fff;
+  }
+  .notice-box{
+    background:#FFF9EE;border:1px solid #F3E3B8;border-radius:12px;padding:12px 14px;
+    font-size:12.5px;color:#6B5410;line-height:1.5;margin-bottom:16px;
+  }
+  .upload-box{
+    border:2px dashed #D8D8D8;border-radius:14px;padding:34px 16px;text-align:center;
+    color:var(--gray);font-size:13px;margin-bottom:14px;
+  }
+  .upload-box .emoji{font-size:34px;display:block;margin-bottom:10px;}
+  .avatar{
+    width:64px;height:64px;border-radius:50%;background:var(--coral);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;
+    margin:0 auto 12px;
+  }
+  .checkmark-wrap{
+    width:84px;height:84px;border-radius:50%;background:#E8F8F3;
+    display:flex;align-items:center;justify-content:center;font-size:40px;margin:26px auto 18px;
+  }
+  .listing-photo{
+    height:220px;border-radius:14px;background:linear-gradient(135deg,#FFB199,#FF385C);
+    margin-bottom:14px;display:flex;align-items:flex-end;padding:12px;
+  }
+  .tag{font-size:11px;color:#fff;background:rgba(0,0,0,0.35);padding:4px 9px;border-radius:20px;}
+
+  /* ---------- Side annotation panel ---------- */
+  .annotate{
+    width:340px;
+    max-width:38vw;
+    padding-top:10px;
+  }
+  .annotate .kicker{
+    font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--coral);text-transform:uppercase;margin-bottom:6px;
+  }
+  .annotate h2{font-size:20px;margin:0 0 10px;}
+  .annotate p{font-size:13.5px;color:var(--gray);line-height:1.6;margin:0 0 16px;}
+  .annotate .dpdp{
+    background:var(--charcoal);color:#fff;border-radius:12px;padding:14px 16px;font-size:12.5px;line-height:1.6;
+  }
+  .annotate .dpdp b{color:#FF9DAE;}
+  .stepper{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+  .stepper span{
+    width:26px;height:5px;border-radius:3px;background:var(--gray-light);
+  }
+  .stepper span.done{background:var(--coral);}
+  .header-title{
+    position:fixed;top:20px;left:24px;font-size:13px;font-weight:800;color:var(--charcoal);
+    display:flex;align-items:center;gap:8px;
+  }
+  .header-title .dot{width:8px;height:8px;border-radius:50%;background:var(--coral);}
+</style>
+</head>
+<body>
+
+<div class="header-title"><span class="dot"></span> Consent by Design — Airbnb India · Clickable Prototype (happy path)</div>
+
+<div class="stage">
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="notch"></div>
+
+      <!-- SCREEN 0: Listing -->
+      <div class="screen active" id="s0">
+        <div class="status-bar"></div>
+        <div class="topbar"><button class="back" onclick="go('sHome')">←</button><div class="title">Listing</div></div>
+        <div class="content">
+          <div class="listing-photo"><span class="tag">Whole home · Koramangala</span></div>
+          <h1 class="big">Sunlit 2BHK near Koramangala 5th Block</h1>
+          <p class="sub">★ 4.92 (183 reviews) · Bengaluru, Karnataka</p>
+          <div class="card">
+            <div class="row">
+              <div class="icon-circle">🛡️</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;">This host requires ID verification</div>
+                <div style="font-size:12.5px;color:var(--gray);margin-top:3px;">You'll confirm your identity before your request is sent. Airbnb only shares a verified/not‑verified status with your host — never your raw ID.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-fixed">
+          <button class="btn" onclick="go('s1')">Request to book · ₹6,400/night</button>
+        </div>
+      </div>
+
+      <!-- Home stub (back target) -->
+      <div class="screen" id="sHome">
+        <div class="status-bar"></div>
+        <div class="topbar"><div class="title">🏠 Airbnb</div></div>
+        <div class="content">
+          <p class="sub">Search results ...</p>
+          <div class="listing-photo" onclick="go('s0')" style="cursor:pointer;"><span class="tag">Tap to open listing →</span></div>
+        </div>
+      </div>
+
+      <!-- SCREEN 1: Why we need this (intro, not the ToS wall) -->
+      <div class="screen" id="s1">
+        <div class="status-bar"></div>
+        <div class="topbar"><button class="back" onclick="go('s0')">←</button><div class="title">Confirm your identity</div></div>
+        <div class="content">
+          <div style="text-align:center;margin:10px 0 6px;font-size:44px;">🪪</div>
+          <h1 class="big" style="text-align:center;">One quick check before you request to book</h1>
+          <p class="sub" style="text-align:center;">This host asks guests to verify ID. Here's exactly what that involves — separate from Airbnb's general Terms.</p>
+          <div class="card">
+            <div class="row" style="margin-bottom:14px;">
+              <div class="icon-circle">1️⃣</div>
+              <div><div style="font-weight:700;font-size:13.5px;">You upload a government ID + selfie</div><div style="font-size:12px;color:var(--gray);">Checked by our verification partner, not stored with the host.</div></div>
+            </div>
+            <div class="row" style="margin-bottom:14px;">
+              <div class="icon-circle">2️⃣</div>
+              <div><div style="font-weight:700;font-size:13.5px;">You choose what the host sees</div><div style="font-size:12px;color:var(--gray);">Only a "Verified" badge, unless you choose to share more.</div></div>
+            </div>
+            <div class="row">
+              <div class="icon-circle">3️⃣</div>
+              <div><div style="font-weight:700;font-size:13.5px;">You stay in control</div><div style="font-size:12px;color:var(--gray);">Manage or withdraw this anytime from Privacy &amp; Data.</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-fixed">
+          <button class="btn" onclick="go('s2')">Continue</button>
+          <button class="btn ghost" onclick="go('s1notice')">Read the full privacy notice</button>
+        </div>
+      </div>
+
+      <!-- Standalone notice screen -->
+      <div class="screen" id="s1notice">
+        <div class="status-bar"></div>
+        <div class="topbar"><button class="back" onclick="go('s1')">←</button><div class="title">Privacy notice · ID verification</div></div>
+        <div class="content">
+          <p class="sub">This is a standalone notice for this purpose only — separate from Airbnb's general Terms of Service.</p>
+          <div class="card"><b style="font-size:13px;">What's collected</b><p class="sub" style="margin:6px 0 0;">Government ID image, selfie photo, ID number.</p></div>
+          <div class="card"><b style="font-size:13px;">Who processes it</b><p class="sub" style="margin:6px 0 0;">Airbnb and our verification vendor. The document itself is never sent to your host.</p></div>
+          <div class="card"><b style="font-size:13px;">How long it's kept</b><p class="sub" style="margin:6px 0 0;">12 months from your last verification, then automatically deleted.</p></div>
+          <div class="card"><b style="font-size:13px;">Your rights</b><p class="sub" style="margin:6px 0 0;">Access, correct, or erase this data anytime from Privacy &amp; Data in your account.</p></div>
+        </div>
+        <div class="bottom-fixed"><button class="btn secondary" onclick="go('s1')">Back to overview</button></div>
+      </div>
+
+      <!-- SCREEN 2: Granular consent -->
+      <div class="screen" id="s2">
+        <div class="status-bar"></div>
+        <div class="topbar"><button class="back" onclick="go('s1')">←</button><div class="title">Your choices</div></div>
+        <div class="content">
+          <p class="sub">Each toggle covers one purpose. Nothing is bundled — turn on what you're comfortable with.</p>
+          <div class="card" style="padding:4px 16px;">
+            <div class="consent-row">
+              <div><div class="label">Verify my identity</div><div class="desc">Required to book this home. Processed by our verification partner.</div></div>
+              <div class="toggle on locked" title="Required for this booking"><div class="knob"></div></div>
+            </div>
+            <div class="consent-row">
+              <div><div class="label">Share "Verified ✓" badge with host</div><div class="desc">Host sees a badge only — never your document or ID number.</div></div>
+              <div class="toggle on" id="tgHost" onclick="toggle('tgHost')"><div class="knob"></div></div>
+            </div>
+            <div class="consent-row">
+              <div><div class="label">Marketing emails &amp; offers</div><div class="desc">Optional. Unrelated to verification — off by default.</div></div>
+              <div class="toggle" id="tgMkt" onclick="toggle('tgMkt')"><div class="knob"></div></div>
+            </div>
+          </div>
+          <div class="notice-box">⚠️ Turning off "Share Verified badge with host" means this host — who requires ID — may decline your request.</div>
+        </div>
+        <div class="bottom-fixed"><button class="btn" onclick="go('s3')">Confirm choices &amp; continue</button></div>
+      </div>
+
+      <!-- SCREEN 3: Upload -->
+      <div class="screen" id="s3">
+        <div class="status-bar"></div>
+        <div class="topbar"><button class="back" onclick="go('s2')">←</button><div class="title">Upload ID</div></div>
+        <div class="content">
+          <h1 class="big">Add your government ID</h1>
+          <p class="sub">Aadhaar, Passport, or Driving Licence. Takes about 30 seconds.</p>
+          <div class="upload-box"><span class="emoji">🪪</span>Tap to scan or upload ID</div>
+          <div class="upload-box"><span class="emoji">🤳</span>Tap to take a quick selfie</div>
+        </div>
+        <div class="bottom-fixed"><button class="btn" onclick="go('s4')">Submit for verification</button></div>
+      </div>
+
+      <!-- SCREEN 4: Confirmation -->
+      <div class="screen" id="s4">
+        <div class="status-bar"></div>
+        <div class="topbar"><div class="title">Booking request sent</div></div>
+        <div class="content" style="text-align:center;">
+          <div class="checkmark-wrap">✅</div>
+          <h1 class="big">You're verified &amp; your request is on its way</h1>
+          <p class="sub">Sunlit 2BHK near Koramangala · Oct 12–14</p>
+          <div class="card" style="text-align:left;">
+            <div class="row">
+              <div class="icon-circle">🛡️</div>
+              <div><div style="font-weight:700;font-size:13.5px;">What your host sees</div><div style="font-size:12px;color:var(--gray);margin-top:2px;">"Verified ✓" badge and your name — that's all.</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-fixed"><button class="btn secondary" onclick="go('s5')">Go to Privacy &amp; Data</button></div>
+      </div>
+
+      <!-- SCREEN 5: Rights center -->
+      <div class="screen" id="s5">
+        <div class="status-bar"></div>
+        <div class="topbar"><button class="back" onclick="go('s4')">←</button><div class="title">Privacy &amp; Data</div></div>
+        <div class="content">
+          <p class="sub">Everything you've consented to, in one place. Change your mind anytime.</p>
+          <div class="card" style="padding:4px 16px;">
+            <div class="consent-row">
+              <div><div class="label">ID verification</div><div class="desc">Active · used for 1 host</div></div>
+              <span class="pill">Active</span>
+            </div>
+            <div class="consent-row">
+              <div><div class="label">Share badge with host</div><div class="desc">Koramangala 2BHK · booking #4821</div></div>
+              <div class="toggle on" id="tgHost2" onclick="toggle('tgHost2')"><div class="knob"></div></div>
+            </div>
+            <div class="consent-row">
+              <div><div class="label">Marketing emails</div><div class="desc">Off</div></div>
+              <div class="toggle" id="tgMkt2" onclick="toggle('tgMkt2')"><div class="knob"></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700;font-size:13.5px;margin-bottom:10px;">Exercise your data rights</div>
+            <button class="btn secondary" style="margin-top:0;margin-bottom:8px;" onclick="go('s6')">Download my data</button>
+            <button class="btn secondary" style="margin-top:0;" onclick="go('s6')">Request correction or erasure</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 6: Request submitted -->
+      <div class="screen" id="s6">
+        <div class="status-bar"></div>
+        <div class="topbar"><button class="back" onclick="go('s5')">←</button><div class="title">Request submitted</div></div>
+        <div class="content" style="text-align:center;">
+          <div class="checkmark-wrap">📩</div>
+          <h1 class="big">Got it — we're on it</h1>
+          <p class="sub">Your request has been logged. We'll respond well within our SLA, and you'll get a notification the moment it's done.</p>
+          <div class="card badge-coral" style="text-align:left;">
+            <div style="font-weight:700;font-size:13px;">Reference #PR-88213</div>
+            <div style="font-size:12px;margin-top:4px;">Expected resolution: within internal SLA</div>
+          </div>
+        </div>
+        <div class="bottom-fixed"><button class="btn" onclick="go('s0')">Back to start</button></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="annotate">
+    <div class="kicker">Deliverable 2 · Happy path</div>
+    <h2>Guest books a stay that requires ID verification</h2>
+    <div class="stepper" id="stepper"></div>
+    <p id="noteText">Tap through the phone on the left — every screen is clickable. This step shows the listing and flags upfront that the host requires ID verification, and that Airbnb only ever shares a status, not the document.</p>
+    <div class="dpdp" id="dpdpText"><b>DPDP principle:</b> Transparency before collection — the requirement is disclosed before the guest starts the flow, not buried afterward.</div>
+  </div>
+</div>
+
+<script>
+  const notes = {
+    s0: ["Listing page discloses the host's ID requirement and Airbnb's data-minimisation promise up front, before the guest commits.",
+         "<b>DPDP principle:</b> Transparency before collection — the requirement is disclosed before the flow starts."],
+    sHome: ["Search stub — tap the card to open the listing.",
+         "<b>DPDP principle:</b> n/a — navigation only."],
+    s1: ["Instead of one bundled Terms checkbox, the guest sees a short, plain-language walkthrough of exactly what verification involves, with a link to the full standalone notice.",
+         "<b>DPDP principle:</b> Notice must be clear, itemized, and separate from a general Terms-of-Service acceptance."],
+    s1notice: ["The full standalone privacy notice for this one purpose: what's collected, who processes it, retention period, and rights — no ToS wall of text.",
+         "<b>DPDP principle:</b> Itemized notice covering purpose, retention, and data-principal rights."],
+    s2: ["Three separate toggles: verification (required, locked), host-sharing (optional, off breaks host-matching — clearly flagged), and marketing (optional, off by default). Nothing pre-checked beyond what's strictly required.",
+         "<b>DPDP principle:</b> Consent must be free, specific, informed, and given for each purpose separately — no bundling."],
+    s3: ["Simple two-step capture: ID scan and selfie. No extra fields collected beyond what verification needs.",
+         "<b>DPDP principle:</b> Data minimisation — collect only what's needed for the stated purpose."],
+    s4: ["Confirmation makes explicit what the host will and won't see: a verified badge and name, never the raw document.",
+         "<b>DPDP principle:</b> Purpose limitation — data shared downstream is limited to what the receiving party actually needs."],
+    s5: ["A single Privacy &amp; Data screen where every active consent is visible and individually reversible — including per-booking host-sharing.",
+         "<b>DPDP principle:</b> Withdrawal of consent must be as easy as giving it."],
+    s6: ["Data-rights requests (access, correction, erasure) are logged with a reference number and a visible SLA, not a black hole.",
+         "<b>DPDP principle:</b> Data-principal rights (access, correction, erasure) must have a clear, trackable resolution path."]
+  };
+  const order = ["s0","s1","s1notice","s2","s3","s4","s5","s6"];
+
+  function go(id){
+    document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const n = notes[id] || ["",""];
+    document.getElementById('noteText').innerHTML = n[0];
+    document.getElementById('dpdpText').innerHTML = n[1];
+    renderStepper(id);
+  }
+  function renderStepper(id){
+    const idx = order.indexOf(id);
+    const stepper = document.getElementById('stepper');
+    stepper.innerHTML = "";
+    order.forEach((s,i)=>{
+      const span = document.createElement('span');
+      if(idx >= 0 && i <= idx) span.classList.add('done');
+      stepper.appendChild(span);
+    });
+  }
+  function toggle(id){
+    document.getElementById(id).classList.toggle('on');
+  }
+  go('s0');
+</script>
+</body>
+</html>
